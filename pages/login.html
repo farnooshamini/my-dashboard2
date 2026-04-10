@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In — ForexSupport Pro</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="../css/auth.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body class="auth-body">
+
+    <div class="auth-container">
+
+        <!-- ── Left Brand Panel ── -->
+        <div class="auth-brand">
+            <div class="brand-logo">
+                <div class="logo-icon">FX</div>
+                <div>
+                    <div class="logo-text">ForexSupport<span class="logo-accent">Pro</span></div>
+                </div>
+            </div>
+
+            <div class="brand-content">
+                <h2>Support Agent<br>Command Centre</h2>
+                <p>Manage client tickets, monitor account activity, and deliver exceptional forex support from one unified platform.</p>
+
+                <div class="brand-features">
+                    <div class="feature-item">
+                        <i class="fas fa-ticket-alt"></i>
+                        <span>Real-time Ticket Management</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Performance Analytics &amp; CSAT</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-users"></i>
+                        <span>Team Collaboration Tools</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>KYC/AML Compliance Workflow</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="brand-ticker">
+                <div class="ticker-item">
+                    <span class="ticker-label">EUR/USD</span>
+                    <span class="ticker-value">1.0921</span>
+                    <span class="ticker-change up">+0.12%</span>
+                </div>
+                <div class="ticker-divider"></div>
+                <div class="ticker-item">
+                    <span class="ticker-label">GBP/USD</span>
+                    <span class="ticker-value">1.2734</span>
+                    <span class="ticker-change down">-0.08%</span>
+                </div>
+                <div class="ticker-divider"></div>
+                <div class="ticker-item">
+                    <span class="ticker-label">XAU/USD</span>
+                    <span class="ticker-value">2,041.30</span>
+                    <span class="ticker-change up">+0.34%</span>
+                </div>
+                <div class="ticker-divider"></div>
+                <div class="ticker-item">
+                    <span class="ticker-label">USD/JPY</span>
+                    <span class="ticker-value">148.62</span>
+                    <span class="ticker-change up">+0.21%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Right Form Panel ── -->
+        <div class="auth-form-panel">
+            <div class="auth-form-container">
+
+                <div class="form-header">
+                    <h1>Welcome back</h1>
+                    <p>Sign in to your support dashboard</p>
+                </div>
+
+                <form id="loginForm" class="auth-form" novalidate>
+
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-envelope input-icon"></i>
+                            <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                placeholder="agent@brokerage.com"
+                                autocomplete="email"
+                                required
+                            >
+                        </div>
+                        <span class="field-error" id="emailError"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                placeholder="Enter your password"
+                                autocomplete="current-password"
+                                required
+                            >
+                            <button type="button" class="toggle-password" aria-label="Toggle password visibility">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <span class="field-error" id="passwordError"></span>
+                    </div>
+
+                    <div class="form-options">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="rememberMe">
+                            Remember me
+                        </label>
+                        <a href="#" class="forgot-link">Forgot password?</a>
+                    </div>
+
+                    <div class="form-error hidden" id="formError"></div>
+
+                    <button type="submit" class="btn-auth-primary" id="loginBtn">
+                        <span class="btn-text"><i class="fas fa-sign-in-alt"></i> Sign In</span>
+                        <span class="btn-loader">
+                            <i class="fas fa-circle-notch spin"></i> Authenticating…
+                        </span>
+                    </button>
+
+                </form>
+
+                <div class="auth-divider">
+                    <span>Don't have an account?</span>
+                </div>
+
+                <a href="signup.html" class="btn-auth-secondary">
+                    Create a Support Account
+                </a>
+
+                <div class="auth-footer">
+                    <p>Demo: enter any email &amp; password to sign in</p>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <script src="../js/auth.js"></script>
+</body>
+</html>

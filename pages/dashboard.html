@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — ForexSupport Pro</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+
+<div class="app">
+
+    <!-- ══════════════════════════════════════
+         SIDEBAR
+    ══════════════════════════════════════ -->
+    <aside class="sidebar" id="sidebar">
+
+        <!-- Logo -->
+        <div class="sidebar-logo">
+            <div class="sidebar-logo-icon">FX</div>
+            <div>
+                <div class="sidebar-logo-text">ForexSupport<span style="color:#60a5fa">Pro</span></div>
+                <div class="sidebar-logo-sub">Support Portal</div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="sidebar-nav">
+
+            <div class="nav-section-label">Main</div>
+
+            <button class="nav-item active" data-nav="overview">
+                <span class="nav-item-icon"><i class="fas fa-home"></i></span>
+                Overview
+            </button>
+
+            <button class="nav-item" data-nav="my-tickets">
+                <span class="nav-item-icon"><i class="fas fa-inbox"></i></span>
+                My Tickets
+                <span class="nav-item-badge" id="navMyTicketsBadge">6</span>
+            </button>
+
+            <button class="nav-item" data-nav="all-tickets">
+                <span class="nav-item-icon"><i class="fas fa-layer-group"></i></span>
+                All Tickets
+                <span class="nav-item-badge urgent" id="navEscalatedBadge">2</span>
+            </button>
+
+            <div class="nav-section-label">Client Management</div>
+
+            <button class="nav-item" data-nav="clients">
+                <span class="nav-item-icon"><i class="fas fa-users"></i></span>
+                Client Accounts
+            </button>
+
+            <div class="nav-section-label">Analytics</div>
+
+            <button class="nav-item" data-nav="performance">
+                <span class="nav-item-icon"><i class="fas fa-chart-line"></i></span>
+                Performance
+            </button>
+
+            <button class="nav-item" data-nav="team">
+                <span class="nav-item-icon"><i class="fas fa-user-friends"></i></span>
+                Team
+            </button>
+
+            <button class="nav-item" data-nav="reports">
+                <span class="nav-item-icon"><i class="fas fa-file-alt"></i></span>
+                Reports
+            </button>
+
+            <div class="nav-section-label">Resources</div>
+
+            <button class="nav-item" data-nav="help">
+                <span class="nav-item-icon"><i class="fas fa-book-open"></i></span>
+                Help &amp; Docs
+            </button>
+
+            <div class="nav-section-label">Account</div>
+
+            <button class="nav-item" data-nav="settings">
+                <span class="nav-item-icon"><i class="fas fa-cog"></i></span>
+                Settings
+            </button>
+
+        </nav>
+
+        <!-- Footer -->
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <div class="avatar avatar-sm av-blue" id="sidebarAvatar">?</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name" id="sidebarUserName">Loading…</div>
+                    <div class="sidebar-user-role" id="sidebarUserRole">Support Agent</div>
+                </div>
+            </div>
+
+            <div class="sidebar-status">
+                <div class="status-dot"></div>
+                <span class="status-label">Available</span>
+                <i class="fas fa-chevron-down" style="font-size:0.6rem;color:rgba(255,255,255,0.3)"></i>
+            </div>
+
+            <button class="btn-logout" id="logoutBtn">
+                <i class="fas fa-sign-out-alt"></i>
+                Sign Out
+            </button>
+        </div>
+
+    </aside>
+
+    <!-- ══════════════════════════════════════
+         MAIN WRAPPER
+    ══════════════════════════════════════ -->
+    <div class="main-wrapper">
+
+        <!-- ── Header ── -->
+        <header class="header">
+            <div class="header-left">
+                <div>
+                    <div class="page-title" id="pageTitle">Overview</div>
+                </div>
+
+                <div class="header-search">
+                    <i class="fas fa-search"></i>
+                    <input
+                        type="text"
+                        id="globalSearch"
+                        placeholder="Search tickets, clients…"
+                        aria-label="Global search"
+                    >
+                    <kbd style="font-size:0.68rem;color:var(--text-muted);background:var(--border);padding:1px 5px;border-radius:4px;flex-shrink:0">⌘K</kbd>
+                </div>
+            </div>
+
+            <div class="header-right">
+
+                <!-- Alerts -->
+                <button class="notif-btn" title="Alerts" onclick="showToast('2 escalated tickets need attention!','warning')">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span class="notif-dot"></span>
+                </button>
+
+                <!-- Notifications -->
+                <button class="notif-btn" title="Notifications" onclick="showToast('3 unread notifications','info')">
+                    <i class="fas fa-bell"></i>
+                    <span class="notif-dot"></span>
+                </button>
+
+                <!-- Dark Mode Toggle -->
+                <button class="notif-btn dm-toggle-btn" id="headerDarkToggle" title="Switch to Dark Mode" onclick="toggleDarkMode()">
+                    <i class="fas fa-moon" id="darkModeIcon"></i>
+                </button>
+
+                <!-- Help -->
+                <button class="notif-btn" title="Help &amp; Documentation" onclick="navigateTo('help')">
+                    <i class="fas fa-question-circle"></i>
+                </button>
+
+                <!-- User Menu -->
+                <button class="header-user" id="headerUserBtn" onclick="navigateTo('settings')">
+                    <div class="avatar av-blue" id="headerAvatar">?</div>
+                    <div class="header-user-info">
+                        <div class="header-user-name" id="headerUserName">Loading…</div>
+                        <div class="header-user-role" id="headerUserRole">Support Agent</div>
+                    </div>
+                    <i class="fas fa-chevron-down" style="font-size:0.65rem;color:var(--text-muted);margin-left:2px"></i>
+                </button>
+
+            </div>
+        </header>
+
+        <!-- ── Main Content ── -->
+        <main class="main-content">
+
+            <!-- Overview -->
+            <div class="content-section active" id="section-overview"></div>
+
+            <!-- My Tickets -->
+            <div class="content-section" id="section-my-tickets"></div>
+
+            <!-- All Tickets -->
+            <div class="content-section" id="section-all-tickets"></div>
+
+            <!-- Clients -->
+            <div class="content-section" id="section-clients"></div>
+
+            <!-- Performance -->
+            <div class="content-section" id="section-performance"></div>
+
+            <!-- Team -->
+            <div class="content-section" id="section-team"></div>
+
+            <!-- Reports -->
+            <div class="content-section" id="section-reports"></div>
+
+            <!-- Settings -->
+            <div class="content-section" id="section-settings"></div>
+
+            <!-- Help & Documentation -->
+            <div class="content-section" id="section-help"></div>
+
+        </main>
+
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/data.js"></script>
+<script src="../js/dashboard.js"></script>
+
+</body>
+</html>
