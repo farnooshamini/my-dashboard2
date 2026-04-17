@@ -1008,9 +1008,96 @@ function buildClientRows(clients) {
 /* ══════════════════════════════════════
    PERFORMANCE
 ══════════════════════════════════════ */
-function renderPerformance() {
+async function renderPerformance() {
     const el = document.getElementById('section-performance');
-    const p  = FXSP_DATA.myPerformance;
+    if (!el) return;
+
+    el.innerHTML = `
+        <div class="section-header">
+            <div class="section-header-left">
+                <h2>My Performance</h2>
+                <p><i class="fas fa-circle-notch spin"></i> Loading metrics…</p>
+            </div>
+        </div>`;
+
+    let users = [], tickets = [];
+    try {
+        const [uRes, tRes] = await Promise.all([
+            fetch(`${CONFIG.API_BASE}/users`),
+            fetch(`${CONFIG.API_BASE}/tickets`),
+        ]);
+        const uJson = await uRes.json();
+        const tJson = await tRes.json();
+        users   = uJson.users || [];
+        tickets = tJson.data  || [];
+    } catch {
+        el.innerHTML = `
+            <div class="section-header"><div class="section-header-left">
+                <h2>My Performance</h2>
+                <p style="color:var(--danger)">Could not load data. Ensure the backend is running.</p>
+            </div></div>`;
+        return;
+    }
+
+    const avatarColors = ['av-blue','av-purple','av-green','av-orange','av-teal','av-indigo'];
+    const me           = users.find(u => u.email === currentUser.email);
+    const myTickets    = me ? tickets.filter(t => t.assignedTo === me.id) : [];
+    const myResolved   = myTickets.filter(t => ['resolved','closed'].includes((t.status||'').toLowerCase())).length;
+    const myTotal      = myTickets.length;
+    const myCritical   = myTickets.filter(t => (t.priority||'').toLowerCase() === 'critical').length;
+    const satisfaction   = myTotal > 0 ? +(myResolved / myTotal * 100).toFixed(1) : 0;
+    const escalationRate = myTotal > 0 ? +(myCritical / myTotal * 100).toFixed(1) : 0;
+
+    // Last 7 days labels + per-day counts
+    const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const today = new Date();
+    const weekLabels     = [];
+    const weeklyResolved = [];
+    const weeklyOpened   = [];
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        const dateStr = d.toISOString().slice(0, 10);
+        weekLabels.push(DAY_NAMES[d.getDay()]);
+        weeklyResolved.push(myTickets.filter(t =>
+            ['resolved','closed'].includes((t.status||'').toLowerCase()) &&
+            (t.createdAt||'').slice(0,10) === dateStr
+        ).length);
+        weeklyOpened.push(myTickets.filter(t =>
+            (t.createdAt||'').slice(0,10) === dateStr
+        ).length);
+    }
+
+    // Status breakdown for doughnut
+    const STATUS_LABELS = ['Open','In Progress','Pending','Resolved','Escalated','Closed'];
+    const STATUS_KEYS   = ['open','in-progress','pending','resolved','escalated','closed'];
+    const rawCounts = STATUS_KEYS.map(s =>
+        myTickets.filter(t => (t.status||'').toLowerCase() === s).length
+    );
+    const nonZero = STATUS_LABELS.reduce((acc, lbl, i) => {
+        if (rawCounts[i] > 0) acc.push({ label: lbl, count: rawCounts[i] });
+        return acc;
+    }, []);
+    const breakdownTotal  = nonZero.reduce((s, x) => s + x.count, 0) || 1;
+    const breakdownLabels = nonZero.length ? nonZero.map(x => x.label) : ['No Tickets'];
+    const breakdownValues = nonZero.length ? nonZero.map(x => Math.round(x.count / breakdownTotal * 100)) : [100];
+
+    // Leaderboard: real per-user ticket stats
+    const teamData = users.map((u, i) => {
+        const ut = tickets.filter(t => t.assignedTo === u.id);
+        const ur = ut.filter(t => ['resolved','closed'].includes((t.status||'').toLowerCase())).length;
+        const uo = ut.filter(t => !['resolved','closed'].includes((t.status||'').toLowerCase())).length;
+        return {
+            id: u.id, name: u.name, email: u.email,
+            initials: getInitials(u.name),
+            color: avatarColors[i % avatarColors.length],
+            ticketsResolved: ur,
+            ticketsOpen: uo,
+            satisfaction: ut.length > 0 ? Math.round(ur / ut.length * 100) : 0,
+        };
+    });
+    const sorted = [...teamData].sort((a, b) => b.ticketsResolved - a.ticketsResolved);
+
     el.innerHTML = `
         <div class="section-header">
             <div class="section-header-left">
@@ -1028,17 +1115,17 @@ function renderPerformance() {
         </div>
 
         <div class="perf-stats">
-            ${perfStatCard(p.ticketsResolved,    'Tickets Resolved', 82, 'blue')}
-            ${perfStatCard(p.avgResponseTime,    'Avg Response Time','', 'green', true)}
-            ${perfStatCard(p.satisfaction + '%', 'Client Satisfaction', p.satisfaction, 'purple')}
-            ${perfStatCard(p.escalationRate + '%','Escalation Rate', 100 - (p.escalationRate * 10), 'orange', false, true)}
+            ${perfStatCard(myResolved,             'Tickets Resolved',    Math.min(myResolved * 2, 100), 'blue')}
+            ${perfStatCard(myTotal + ' total',     'Tickets Assigned',    '', 'green', true)}
+            ${perfStatCard(satisfaction + '%',     'Resolution Rate',     satisfaction, 'purple')}
+            ${perfStatCard(escalationRate + '%',   'Critical Ticket Rate', Math.max(0, 100 - escalationRate * 10), 'orange', false, true)}
         </div>
 
         <div class="content-grid-2 mt-5">
             <div class="card">
                 <div class="card-header">
                     <div class="card-title">Tickets Resolved — Daily Trend</div>
-                    <span class="badge badge-resolved">7-day total: ${p.weeklyResolved.reduce((a,b)=>a+b,0)}</span>
+                    <span class="badge badge-resolved">7-day total: ${weeklyResolved.reduce((a,b)=>a+b,0)}</span>
                 </div>
                 <div class="card-body">
                     <div class="chart-wrapper"><canvas id="resolvedChart"></canvas></div>
@@ -1046,8 +1133,8 @@ function renderPerformance() {
             </div>
             <div class="card">
                 <div class="card-header">
-                    <div class="card-title">Avg Response Time (minutes)</div>
-                    <span class="badge badge-pending">Target: ≤ 10 min</span>
+                    <div class="card-title">Tickets Opened vs Resolved</div>
+                    <span class="badge badge-pending">Last 7 days</span>
                 </div>
                 <div class="card-body">
                     <div class="chart-wrapper"><canvas id="responseChart"></canvas></div>
@@ -1058,18 +1145,18 @@ function renderPerformance() {
         <div class="content-grid-2 mt-5">
             <div class="card">
                 <div class="card-header">
-                    <div class="card-title">Ticket Category Breakdown</div>
+                    <div class="card-title">Ticket Status Breakdown</div>
                 </div>
                 <div class="card-body" style="display:flex;align-items:center;gap:2rem">
                     <div style="width:200px;height:200px;flex-shrink:0"><canvas id="categoryChart"></canvas></div>
                     <div style="flex:1">
-                        ${p.categoryBreakdown.labels.map((label, i) => `
+                        ${breakdownLabels.map((label, i) => `
                         <div style="display:flex;align-items:center;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid var(--border-light)">
                             <div style="display:flex;align-items:center;gap:0.5rem">
-                                <span style="width:10px;height:10px;border-radius:2px;background:${categoryColors[i]};flex-shrink:0;display:inline-block"></span>
+                                <span style="width:10px;height:10px;border-radius:2px;background:${categoryColors[i % categoryColors.length]};flex-shrink:0;display:inline-block"></span>
                                 <span style="font-size:0.8rem;color:var(--text-secondary)">${label}</span>
                             </div>
-                            <span style="font-size:0.8rem;font-weight:600">${p.categoryBreakdown.values[i]}%</span>
+                            <span style="font-size:0.8rem;font-weight:600">${breakdownValues[i]}%</span>
                         </div>`).join('')}
                     </div>
                 </div>
@@ -1077,17 +1164,16 @@ function renderPerformance() {
             <div class="card">
                 <div class="card-header">
                     <div class="card-title"><i class="fas fa-trophy" style="color:#f59e0b;margin-right:6px"></i>Team Leaderboard</div>
-                    <span class="badge badge-pending">This Week</span>
+                    <span class="badge badge-pending">All Time</span>
                 </div>
                 <div class="leaderboard">
-                    ${buildLeaderboard()}
+                    ${buildLeaderboard(sorted)}
                 </div>
             </div>
         </div>
     `;
 
-    // Init charts after DOM render
-    setTimeout(initPerfCharts, 50);
+    setTimeout(() => initPerfCharts(weekLabels, weeklyResolved, weeklyOpened, breakdownLabels, breakdownValues), 50);
 }
 
 const categoryColors = ['#3b82f6','#10b981','#8b5cf6','#f59e0b','#ef4444','#64748b'];
@@ -1102,23 +1188,23 @@ function perfStatCard(value, label, pct, color, noBar = false, inverted = false)
     </div>`;
 }
 
-function buildLeaderboard() {
-    const sorted = [...FXSP_DATA.team].sort((a, b) => b.ticketsResolved - a.ticketsResolved);
+function buildLeaderboard(sorted) {
+    if (!sorted || sorted.length === 0) {
+        return `<div style="text-align:center;padding:2rem;color:var(--text-muted)">No team data available.</div>`;
+    }
     return sorted.map((m, i) => `
     <div class="leaderboard-item">
         <div class="leaderboard-rank rank-${i+1}">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i+1)}</div>
-        <div class="avatar avatar-sm ${m.color}">${m.avatar}</div>
+        <div class="avatar avatar-sm ${m.color}">${m.initials}</div>
         <div class="leaderboard-info">
-            <div class="leaderboard-name">${m.name}${m.name === currentUser.name || (m.id === 'AGT-01' && false) ? ' <span style="font-size:0.68rem;color:var(--accent)">(you)</span>' : ''}</div>
-            <div class="leaderboard-stat">${m.ticketsResolved} resolved · ${m.satisfaction}% CSAT · ${m.avgResponseTime} avg</div>
+            <div class="leaderboard-name">${m.name}${m.email === currentUser.email ? ' <span style="font-size:0.68rem;color:var(--accent)">(you)</span>' : ''}</div>
+            <div class="leaderboard-stat">${m.ticketsResolved} resolved · ${m.satisfaction}% rate · ${m.ticketsOpen} open</div>
         </div>
         <div class="leaderboard-score">${m.ticketsResolved}</div>
     </div>`).join('');
 }
 
-function initPerfCharts() {
-    const p = FXSP_DATA.myPerformance;
-
+function initPerfCharts(weekLabels, weeklyResolved, weeklyOpened, breakdownLabels, breakdownValues) {
     if (charts.resolved) charts.resolved.destroy();
     if (charts.response) charts.response.destroy();
     if (charts.category) charts.category.destroy();
@@ -1128,10 +1214,10 @@ function initPerfCharts() {
         charts.resolved = new Chart(resolvedCtx, {
             type: 'bar',
             data: {
-                labels: FXSP_DATA.weekLabels,
+                labels: weekLabels,
                 datasets: [{
                     label: 'Tickets Resolved',
-                    data: p.weeklyResolved,
+                    data: weeklyResolved,
                     backgroundColor: 'rgba(59,130,246,0.15)',
                     borderColor: '#3b82f6',
                     borderWidth: 2,
@@ -1148,10 +1234,21 @@ function initPerfCharts() {
         charts.response = new Chart(responseCtx, {
             type: 'line',
             data: {
-                labels: FXSP_DATA.weekLabels,
+                labels: weekLabels,
                 datasets: [{
-                    label: 'Response Time (min)',
-                    data: p.weeklyResponse,
+                    label: 'Opened',
+                    data: weeklyOpened,
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245,158,11,0.08)',
+                    borderWidth: 2.5,
+                    pointBackgroundColor: '#f59e0b',
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    fill: true,
+                    tension: 0.4,
+                }, {
+                    label: 'Resolved',
+                    data: weeklyResolved,
                     borderColor: '#10b981',
                     backgroundColor: 'rgba(16,185,129,0.08)',
                     borderWidth: 2.5,
@@ -1160,17 +1257,9 @@ function initPerfCharts() {
                     pointHoverRadius: 6,
                     fill: true,
                     tension: 0.4,
-                }, {
-                    label: 'Target (10 min)',
-                    data: Array(7).fill(10),
-                    borderColor: '#f59e0b',
-                    borderWidth: 1.5,
-                    borderDash: [5, 5],
-                    pointRadius: 0,
-                    fill: false,
                 }]
             },
-            options: chartOptions('Minutes')
+            options: chartOptions('Tickets')
         });
     }
 
@@ -1179,10 +1268,10 @@ function initPerfCharts() {
         charts.category = new Chart(categoryCtx, {
             type: 'doughnut',
             data: {
-                labels: p.categoryBreakdown.labels,
+                labels: breakdownLabels,
                 datasets: [{
-                    data: p.categoryBreakdown.values,
-                    backgroundColor: categoryColors,
+                    data: breakdownValues,
+                    backgroundColor: categoryColors.slice(0, breakdownLabels.length),
                     borderWidth: 0,
                     hoverOffset: 4,
                 }]

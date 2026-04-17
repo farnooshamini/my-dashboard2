@@ -54,7 +54,7 @@
 .sidebar-logo-text {
     font-size: 1.125rem;
     font-weight: 700;
-    color: #fff;
+    color: var(--sidebar-logo-text);
     letter-spacing: -0.02em;
     line-height: 1;
 }
@@ -62,7 +62,7 @@
 .sidebar-logo-sub {
     font-size: 0.65rem;
     font-weight: 500;
-    color: rgba(255,255,255,0.35);
+    color: var(--sidebar-logo-sub);
     margin-top: 2px;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -84,7 +84,6 @@
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--sidebar-text);
-    opacity: 0.6;
 }
 
 .nav-item {
@@ -114,6 +113,11 @@
 .nav-item.active {
     background: rgba(29,78,216,0.2);
     color: var(--sidebar-text-active);
+}
+
+body:not(.dark-mode) .nav-item.active {
+    background: #1d4ed8;
+    color: #ffffff;
 }
 
 .nav-item.active::before {
@@ -221,7 +225,7 @@
     background: none;
     border: none;
     border-radius: 6px;
-    color: rgba(255,255,255,0.4);
+    color: var(--sidebar-logout-color);
     font-family: var(--font);
     font-size: 0.8125rem;
     font-weight: 500;
