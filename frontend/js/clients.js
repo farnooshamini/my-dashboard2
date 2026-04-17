@@ -19,7 +19,7 @@ async function loadClients() {
 
 async function fetchAndRenderClients() {
     try {
-        const res  = await fetch(`${API_BASE}/clients`);
+        const res  = await apiFetch(`${API_BASE}/clients`);
         const json = await res.json();
         if (!json.success) throw new Error(json.message);
         clientsData = json.data;
@@ -295,7 +295,7 @@ async function submitClientForm(e) {
     try {
         const url    = editingId ? `${API_BASE}/clients/${editingId}` : `${API_BASE}/clients`;
         const method = editingId ? 'PUT' : 'POST';
-        const res    = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const res    = await apiFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
         const json   = await res.json();
 
         if (!json.success) {
@@ -325,7 +325,7 @@ async function confirmDeleteClient(id, name) {
     if (!confirm(`Delete client "${name}"?\n\nThis action cannot be undone.`)) return;
 
     try {
-        const res  = await fetch(`${API_BASE}/clients/${id}`, { method: 'DELETE' });
+        const res  = await apiFetch(`${API_BASE}/clients/${id}`, { method: 'DELETE' });
         const json = await res.json();
 
         if (!json.success) {

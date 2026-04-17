@@ -1,12 +1,18 @@
-const router = require('express').Router();
+const router       = require('express').Router();
+const authenticate = require('../middleware/authenticate');
+const requireRole  = require('../middleware/requireRole');
 
-router.use('/auth',    require('./auth'));
-router.use('/clients', require('./clients'));
-router.use('/tickets', require('./tickets'));
+// Public auth routes (no token needed)
+router.use('/auth',  require('./auth'));
 
-router.get('/', (_req, res) => res.json({ message: 'API is running' }));
+// Admin-only routes
+router.use('/admin', require('./admin'));
 
-router.get('/users', async (_req, res) => {
+// All routes below require a valid token
+router.use(authenticate);
+
+// All authenticated users can list team members (needed for Team + Performance sections)
+router.get('/users', async (req, res) => {
     const prisma = require('../prisma/client');
     const users  = await prisma.user.findMany({
         select: { id: true, name: true, email: true, role: true, createdAt: true },
@@ -14,5 +20,13 @@ router.get('/users', async (_req, res) => {
     });
     res.json({ count: users.length, users });
 });
+
+// Clients — account managers only
+router.use('/clients', requireRole('account_manager'), require('./clients'));
+
+// Tickets — support agents + account managers
+router.use('/tickets', requireRole('support', 'account_manager'), require('./tickets'));
+
+router.get('/', (_req, res) => res.json({ message: 'API is running' }));
 
 module.exports = router;

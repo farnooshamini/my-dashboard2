@@ -4,6 +4,7 @@
 
 const AUTH_KEY  = 'fxsp_session';
 const USERS_KEY = 'fxsp_users';
+const TOKEN_KEY = 'fxsp_token';
 
 /* ── Utilities ── */
 function getUsers() {
@@ -26,6 +27,11 @@ function setSession(user) {
 
 function clearSession() {
     localStorage.removeItem(AUTH_KEY);
+    localStorage.removeItem(TOKEN_KEY);
+}
+
+function setToken(token) {
+    if (token) localStorage.setItem(TOKEN_KEY, token);
 }
 
 function isLoggedIn() {
@@ -185,6 +191,7 @@ function initLogin() {
             }
 
             const { name, role } = json.user;
+            setToken(json.token);
             setSession({ name, email, initials: getInitials(name), role, color: 'av-blue' });
             redirectToDashboard();
         } catch {
@@ -289,6 +296,7 @@ function initSignup() {
                 return;
             }
 
+            setToken(json.token);
             setSession({ name: fullName, email, initials: getInitials(fullName), role, color: 'av-blue' });
             redirectToDashboard();
         } catch {

@@ -103,6 +103,7 @@ let charts         = {};
 
 /* ── Role-based access ── */
 const ROLE_PERMISSIONS = {
+    administrator:   ['admin', 'overview', 'clients', 'my-tickets', 'all-tickets', 'team', 'performance', 'reports', 'settings', 'help'],
     account_manager: ['overview', 'clients', 'team', 'performance', 'reports', 'settings', 'help'],
     support:         ['overview', 'my-tickets', 'all-tickets', 'team', 'performance', 'settings', 'help'],
     sales:           ['overview', 'team', 'performance', 'reports', 'settings', 'help'],
@@ -110,6 +111,7 @@ const ROLE_PERMISSIONS = {
 };
 
 const ROLE_DEFAULTS = {
+    administrator:   'admin',
     account_manager: 'clients',
     support:         'my-tickets',
     sales:           'overview',
@@ -117,6 +119,7 @@ const ROLE_DEFAULTS = {
 };
 
 const ROLE_LABELS = {
+    administrator:   'Administrator',
     account_manager: 'Account Manager',
     support:         'Chat Support',
     sales:           'Sales / IB',
@@ -206,6 +209,7 @@ function navigateTo(section) {
 
     // Update page title
     const titles = {
+        admin:         'Admin Dashboard',
         overview:      'Overview',
         'my-tickets':  'My Tickets',
         'all-tickets': 'All Tickets',
@@ -220,6 +224,7 @@ function navigateTo(section) {
 
     // Render section content
     const renderers = {
+        admin:         renderAdmin,
         overview:      renderOverview,
         'my-tickets':  renderMyTickets,
         'all-tickets': renderAllTickets,
@@ -1023,8 +1028,8 @@ async function renderPerformance() {
     let users = [], tickets = [];
     try {
         const [uRes, tRes] = await Promise.all([
-            fetch(`${CONFIG.API_BASE}/users`),
-            fetch(`${CONFIG.API_BASE}/tickets`),
+            apiFetch(`${CONFIG.API_BASE}/users`),
+            apiFetch(`${CONFIG.API_BASE}/tickets`),
         ]);
         const uJson = await uRes.json();
         const tJson = await tRes.json();
@@ -1362,7 +1367,7 @@ async function renderTeam() {
     `;
 
     try {
-        const res   = await fetch(`${CONFIG.API_BASE}/users`);
+        const res   = await apiFetch(`${CONFIG.API_BASE}/users`);
         const json  = await res.json();
         const users = json.users || [];
 
@@ -2547,6 +2552,189 @@ window.copyTemplate = function(text) {
         showToast('Template copied!', 'success');
     });
 };
+
+/* ══════════════════════════════════════
+   ADMIN DASHBOARD
+══════════════════════════════════════ */
+async function renderAdmin() {
+    const el = document.getElementById('section-admin');
+    if (!el) return;
+
+    el.innerHTML = `
+        <div class="section-header">
+            <div class="section-header-left">
+                <h2>Admin Dashboard</h2>
+                <p><i class="fas fa-circle-notch spin"></i> Loading system data…</p>
+            </div>
+        </div>`;
+
+    let stats = {}, alerts = [], activity = [], users = [], tickets = [];
+    try {
+        const [sRes, aRes, acRes, uRes, tRes] = await Promise.all([
+            apiFetch(`${CONFIG.API_BASE}/admin/stats`),
+            apiFetch(`${CONFIG.API_BASE}/admin/alerts`),
+            apiFetch(`${CONFIG.API_BASE}/admin/activity`),
+            apiFetch(`${CONFIG.API_BASE}/users`),
+            apiFetch(`${CONFIG.API_BASE}/tickets`),
+        ]);
+        stats    = await sRes.json();
+        const aJson  = await aRes.json();
+        const acJson = await acRes.json();
+        const uJson  = await uRes.json();
+        const tJson  = await tRes.json();
+        alerts   = aJson.alerts   || [];
+        activity = acJson.activity || [];
+        users    = uJson.users    || [];
+        tickets  = tJson.data     || [];
+    } catch {
+        el.innerHTML = `<div class="section-header"><div class="section-header-left">
+            <h2>Admin Dashboard</h2>
+            <p style="color:var(--danger)">Could not load data. Ensure the backend is running.</p>
+        </div></div>`;
+        return;
+    }
+
+    const avatarColors = ['av-blue','av-purple','av-green','av-orange','av-teal','av-indigo'];
+
+    // Team leaderboard data
+    const teamData = users.map((u, i) => {
+        const ut = tickets.filter(t => t.assignedTo === u.id);
+        const ur = ut.filter(t => ['resolved','closed'].includes((t.status||'').toLowerCase())).length;
+        return { name: u.name, color: avatarColors[i % avatarColors.length], initials: getInitials(u.name), resolved: ur, open: ut.length - ur };
+    }).sort((a, b) => b.resolved - a.resolved);
+
+    el.innerHTML = `
+        <div class="section-header">
+            <div class="section-header-left">
+                <h2>Admin Dashboard</h2>
+                <p>System overview — ${users.length} users · ${stats.totalTickets || 0} tickets · ${stats.totalClients || 0} clients</p>
+            </div>
+        </div>
+
+        <!-- KPI Row -->
+        <div class="stats-grid" style="margin-bottom:1.5rem">
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-label">Total Users</span>
+                    <div class="stat-icon blue"><i class="fas fa-users"></i></div>
+                </div>
+                <div class="stat-value">${stats.totalUsers ?? '—'}</div>
+                <div class="stat-desc">Registered accounts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-label">Total Clients</span>
+                    <div class="stat-icon green"><i class="fas fa-briefcase"></i></div>
+                </div>
+                <div class="stat-value">${stats.totalClients ?? '—'}</div>
+                <div class="stat-desc">Active client accounts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-label">Total Tickets</span>
+                    <div class="stat-icon purple"><i class="fas fa-ticket-alt"></i></div>
+                </div>
+                <div class="stat-value">${stats.totalTickets ?? '—'}</div>
+                <div class="stat-desc">${stats.openTickets ?? 0} currently open</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-label">Critical Unresolved</span>
+                    <div class="stat-icon orange"><i class="fas fa-exclamation-triangle"></i></div>
+                </div>
+                <div class="stat-value" style="${(stats.criticalUnresolved ?? 0) > 0 ? 'color:var(--danger)' : ''}">${stats.criticalUnresolved ?? '—'}</div>
+                <div class="stat-desc">Needs immediate attention</div>
+            </div>
+        </div>
+
+        <!-- Alerts + Activity -->
+        <div class="content-grid-2 mt-5" style="margin-bottom:1.5rem">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i class="fas fa-exclamation-circle" style="color:var(--danger);margin-right:6px"></i>Open Alerts</div>
+                    <span class="badge badge-escalated">${alerts.length} issue${alerts.length !== 1 ? 's' : ''}</span>
+                </div>
+                <div class="card-body" style="padding:0;max-height:320px;overflow-y:auto">
+                    ${alerts.length === 0
+                        ? `<div style="padding:2rem;text-align:center;color:var(--text-muted)"><i class="fas fa-check-circle" style="font-size:1.5rem;margin-bottom:0.5rem;color:var(--success)"></i><p>No active alerts</p></div>`
+                        : alerts.map(t => `
+                    <div style="display:flex;align-items:flex-start;gap:0.75rem;padding:0.875rem 1.25rem;border-bottom:1px solid var(--border-light)">
+                        <span class="badge badge-${(t.priority||'').toLowerCase() === 'critical' ? 'escalated' : 'pending'}" style="margin-top:2px;flex-shrink:0">${t.priority || 'medium'}</span>
+                        <div style="flex:1;min-width:0">
+                            <div style="font-size:0.8125rem;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.subject}</div>
+                            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px">${t.agent ? t.agent.name : 'Unassigned'} · ${timeAgo(t.createdAt)}</div>
+                        </div>
+                        <span class="badge badge-${t.status === 'open' ? 'open' : 'in-progress'}">${t.status}</span>
+                    </div>`).join('')}
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i class="fas fa-stream" style="color:var(--accent);margin-right:6px"></i>Recent Activity</div>
+                </div>
+                <div class="card-body" style="padding:0;max-height:320px;overflow-y:auto">
+                    ${activity.slice(0, 15).map(a => `
+                    <div style="display:flex;align-items:flex-start;gap:0.75rem;padding:0.75rem 1.25rem;border-bottom:1px solid var(--border-light)">
+                        <div class="avatar avatar-sm ${a.color === 'green' ? 'av-green' : a.color === 'red' ? 'av-red' : 'av-purple'}" style="flex-shrink:0">
+                            <i class="fas ${a.icon}" style="font-size:0.6rem"></i>
+                        </div>
+                        <div style="flex:1;min-width:0">
+                            <div style="font-size:0.8rem;color:var(--text-primary);line-height:1.4">${a.text}</div>
+                            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px">${a.meta} · ${timeAgo(a.createdAt)}</div>
+                        </div>
+                    </div>`).join('')}
+                </div>
+            </div>
+        </div>
+
+        <!-- Team Performance Chart -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title"><i class="fas fa-chart-bar" style="color:var(--accent);margin-right:6px"></i>Team Performance</div>
+                <span class="badge badge-resolved">All Time</span>
+            </div>
+            <div class="card-body">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start">
+                    <div class="chart-wrapper" style="height:220px"><canvas id="adminBarChart"></canvas></div>
+                    <div>
+                        ${teamData.map((m, i) => `
+                        <div style="display:flex;align-items:center;gap:0.75rem;padding:0.5rem 0;border-bottom:1px solid var(--border-light)">
+                            <div class="leaderboard-rank rank-${i+1}" style="font-size:0.8rem;width:24px;text-align:center">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i+1)}</div>
+                            <div class="avatar avatar-sm ${m.color}">${m.initials}</div>
+                            <div style="flex:1">
+                                <div style="font-size:0.8125rem;font-weight:600">${m.name}</div>
+                                <div style="font-size:0.72rem;color:var(--text-muted)">${m.resolved} resolved · ${m.open} open</div>
+                            </div>
+                            <div style="font-size:0.875rem;font-weight:700;color:var(--primary-light)">${m.resolved}</div>
+                        </div>`).join('')}
+                        ${teamData.length === 0 ? '<p style="color:var(--text-muted);font-size:0.875rem">No ticket data yet.</p>' : ''}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    setTimeout(() => {
+        const ctx = document.getElementById('adminBarChart')?.getContext('2d');
+        if (!ctx || !teamData.length) return;
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: teamData.map(m => m.name.split(' ')[0]),
+                datasets: [
+                    { label: 'Resolved', data: teamData.map(m => m.resolved), backgroundColor: 'rgba(124,58,237,0.75)', borderColor: '#7c3aed', borderWidth: 1.5, borderRadius: 5, borderSkipped: false },
+                    { label: 'Open',     data: teamData.map(m => m.open),     backgroundColor: 'rgba(245,158,11,0.6)',  borderColor: '#f59e0b', borderWidth: 1.5, borderRadius: 5, borderSkipped: false },
+                ],
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: true, position: 'top', labels: { font: { size: 11 }, usePointStyle: true } }, tooltip: { backgroundColor: 'rgba(15,23,42,0.92)', padding: 10, cornerRadius: 8 } },
+                scales: { x: { stacked: false, grid: { display: false } }, y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' } } },
+            },
+        });
+    }, 50);
+}
 
 /* ══════════════════════════════════════
    TOAST NOTIFICATIONS
