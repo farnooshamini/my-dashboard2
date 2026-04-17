@@ -317,7 +317,6 @@ function requireAuth() {
 
 /* ── Boot ── */
 document.addEventListener('DOMContentLoaded', () => {
-    const path = window.location.pathname;
-    if (path.includes('login.html'))  initLogin();
-    if (path.includes('signup.html')) initSignup();
+    if (document.getElementById('loginForm'))  initLogin();
+    if (document.getElementById('signupForm')) initSignup();
 });
