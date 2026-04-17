@@ -248,6 +248,25 @@
     z-index: 1;
 }
 
+.auth-form select {
+    width: 100%;
+    padding: 0.6875rem 0.875rem 0.6875rem 2.5rem;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    font-family: var(--font);
+    font-size: 0.875rem;
+    color: #0f172a;
+    background: #fff;
+    outline: none;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+    appearance: none;
+    cursor: pointer;
+}
+.auth-form select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+}
+
 .auth-form input[type="text"],
 .auth-form input[type="email"],
 .auth-form input[type="password"] {

@@ -151,7 +151,7 @@ function navigateTo(section) {
         overview:      renderOverview,
         'my-tickets':  renderMyTickets,
         'all-tickets': renderAllTickets,
-        clients:       renderClients,
+        clients:       () => window.loadClients(),
         performance:   renderPerformance,
         team:          renderTeam,
         reports:       renderReports,

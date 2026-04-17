@@ -166,35 +166,33 @@ function initLogin() {
 
         if (!valid) return;
 
-        // Loading state
         loginBtn.classList.add('loading');
         loginBtn.disabled = true;
 
-        await new Promise(r => setTimeout(r, 900));
+        try {
+            const res  = await fetch(`${CONFIG.API_BASE}/auth/login`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ email, password }),
+            });
+            const json = await res.json();
 
-        // Check registered users first, fallback to any credentials
-        const users       = getUsers();
-        const matchedUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-
-        let sessionUser;
-
-        if (matchedUser) {
-            if (matchedUser.password !== password) {
-                loginBtn.classList.remove('loading');
-                loginBtn.disabled = false;
-                showFormError('Incorrect password. Please try again.');
-                markInputError('password');
+            if (!res.ok) {
+                showFormError(json.error || 'Login failed. Please try again.');
+                if (res.status === 401) markInputError('password');
+                if (res.status === 404) markInputError('email');
                 return;
             }
-            sessionUser = { name: matchedUser.name, email: matchedUser.email, initials: getInitials(matchedUser.name), role: 'Support Agent', color: 'av-blue' };
-        } else {
-            // Demo mode — accept any credentials
-            const inferredName = email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-            sessionUser = { name: inferredName, email, initials: getInitials(inferredName), role: 'Support Agent', color: 'av-blue', isDemo: true };
-        }
 
-        setSession(sessionUser);
-        redirectToDashboard();
+            const { name, role } = json.user;
+            setSession({ name, email, initials: getInitials(name), role, color: 'av-blue' });
+            redirectToDashboard();
+        } catch {
+            showFormError('Cannot reach the server. Make sure the backend is running.');
+        } finally {
+            loginBtn.classList.remove('loading');
+            loginBtn.disabled = false;
+        }
     });
 }
 
@@ -271,34 +269,34 @@ function initSignup() {
 
         if (!valid) return;
 
-        // Check existing email
-        const users = getUsers();
-        if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
-            showFormError('An account with this email already exists.');
-            markInputError('email');
-            return;
-        }
-
         submitBtn.classList.add('loading');
         submitBtn.disabled = true;
 
-        await new Promise(r => setTimeout(r, 1000));
-
         const fullName = `${firstName} ${lastName}`;
-        const newUser  = { name: fullName, email, password };
-        users.push(newUser);
-        saveUsers(users);
+        const role     = document.getElementById('role')?.value || 'account_manager';
 
-        const sessionUser = {
-            name:     fullName,
-            email,
-            initials: getInitials(fullName),
-            role:     'Support Agent',
-            color:    'av-blue'
-        };
+        try {
+            const res  = await fetch(`${CONFIG.API_BASE}/auth/register`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ name: fullName, email, password, role }),
+            });
+            const json = await res.json();
 
-        setSession(sessionUser);
-        redirectToDashboard();
+            if (!res.ok) {
+                if (res.status === 409) markInputError('email');
+                showFormError(json.error || 'Registration failed. Please try again.');
+                return;
+            }
+
+            setSession({ name: fullName, email, initials: getInitials(fullName), role, color: 'av-blue' });
+            redirectToDashboard();
+        } catch {
+            showFormError('Cannot reach the server. Make sure the backend is running.');
+        } finally {
+            submitBtn.classList.remove('loading');
+            submitBtn.disabled = false;
+        }
     });
 }
 

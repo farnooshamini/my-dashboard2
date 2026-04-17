@@ -1728,6 +1728,151 @@ body:not(.dark-mode) .dm-theme-card-dark  { opacity: 0.6; }
     .header-search { display: none; }
 }
 
+/* ══════════════════════════════════════
+   CLIENTS — MODAL
+══════════════════════════════════════ */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+.modal-overlay.hidden { display: none; }
+
+.modal {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    width: 100%;
+    max-width: 560px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+    overflow: hidden;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+}
+.modal-header h3 { font-size: 1rem; font-weight: 700; margin: 0; color: var(--text-primary); }
+
+.modal-close-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 1rem;
+    padding: 0.25rem;
+    border-radius: 6px;
+    transition: color var(--t-sm), background var(--t-sm);
+}
+.modal-close-btn:hover { color: var(--text-primary); background: var(--bg); }
+
+.modal-error {
+    margin: 0.75rem 1.5rem 0;
+    padding: 0.6rem 0.875rem;
+    border-radius: 8px;
+    background: #fee2e2;
+    color: #b91c1c;
+    font-size: 0.82rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.modal-error.hidden { display: none; }
+body.dark-mode .modal-error { background: rgba(239,68,68,0.15); color: #fca5a5; }
+
+.modal-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    padding: 1rem 1.5rem 0;
+}
+.modal-form-group { display: flex; flex-direction: column; gap: 0.35rem; }
+.modal-form-group label { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); }
+.modal-form-group input,
+.modal-form-group select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    background: var(--bg);
+    color: var(--text-primary);
+    transition: border-color var(--t-sm), box-shadow var(--t-sm);
+}
+.modal-form-group input:focus,
+.modal-form-group select:focus {
+    outline: none;
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+}
+.req { color: var(--danger); }
+
+.modal-field-error { font-size: 0.75rem; color: var(--danger); min-height: 1rem; }
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1.25rem 1.5rem;
+    border-top: 1px solid var(--border);
+    margin-top: 1rem;
+}
+
+/* ── Loading state for buttons ── */
+.btn.loading .btn-text   { display: none; }
+.btn.loading .btn-loader { display: inline-flex; align-items: center; gap: 0.4rem; }
+.btn .btn-loader         { display: none; }
+
+/* ══════════════════════════════════════
+   CLIENTS — ALERT BANNER
+══════════════════════════════════════ */
+.clients-alert {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: 1rem;
+    transition: opacity 0.3s;
+}
+.clients-alert.hidden { display: none; }
+.clients-alert-success { background: #d1fae5; color: #065f46; }
+.clients-alert-error   { background: #fee2e2; color: #b91c1c; }
+body.dark-mode .clients-alert-success { background: rgba(16,185,129,0.15); color: #6ee7b7; }
+body.dark-mode .clients-alert-error   { background: rgba(239,68,68,0.15);  color: #fca5a5; }
+
+/* ══════════════════════════════════════
+   CLIENTS — TABLE STATES
+══════════════════════════════════════ */
+.table-loading,
+.table-empty,
+.table-error {
+    text-align: center;
+    padding: 2.5rem;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+.table-error { color: var(--danger); }
+
+/* ── Row action buttons ── */
+.row-actions { display: flex; gap: 0.35rem; }
+.btn-ghost-danger { color: var(--danger) !important; }
+.btn-ghost-danger:hover { background: #fee2e2 !important; }
+body.dark-mode .btn-ghost-danger:hover { background: rgba(239,68,68,0.15) !important; }
+
+@media (max-width: 560px) {
+    .modal-form-row { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 560px) {
     .stats-grid { grid-template-columns: 1fr; }
     .main-content { padding: 1rem; }
