@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   // support | sales | finance | account_manager
+  createdAt    DateTime @default(now())
+
+  assignedClients Client[]
+  assignedTickets Ticket[]
+
+  @@map("users")
+}
+
+// Account Manager: tracks forex clients and their account details
+model Client {
+  id            Int      @id @default(autoincrement())
+  name          String
+  email         String   @unique
+  accountNumber String   @unique
+  balance       Decimal  @default(0) @db.Decimal(15, 2)
+  currency      String   @default("USD")
+  status        String   @default("active")  // active | inactive | suspended | pending
+  assignedTo    Int?
+  manager       User?    @relation(fields: [assignedTo], references: [id])
+  createdAt     DateTime @default(now())
+
+  @@map("clients")
+}
+
+// Chat Support: tracks inbound support conversations from clients
+model Ticket {
+  id          Int      @id @default(autoincrement())
+  subject     String
+  clientEmail String
+  message     String?
+  status      String   @default("open")    // open | in_progress | resolved | closed
+  priority    String   @default("medium")  // low | medium | high | urgent
+  channel     String   @default("chat")    // chat | email | phone
+  assignedTo  Int?
+  agent       User?    @relation(fields: [assignedTo], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@map("tickets")
+}
