@@ -6,15 +6,26 @@
    DARK MODE
 ══════════════════════════════════════ */
 const DM_KEY = 'fxsp_dark_mode';
+let _autoThemeTimer = null;
+
+function _isDarkHour() {
+    const h = new Date().getHours();
+    return h >= 20 || h < 7; // dark from 8 pm to 7 am
+}
 
 function initDarkMode() {
     const saved = localStorage.getItem(DM_KEY);
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const isDark = saved !== null ? saved === 'true' : prefersDark;
-    applyDarkMode(isDark, false);
+    if (saved === 'auto') {
+        _startAutoTheme();
+    } else {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const isDark = saved !== null ? saved === 'true' : prefersDark;
+        applyDarkMode(isDark, false);
+    }
 }
 
 function toggleDarkMode() {
+    _stopAutoTheme();
     applyDarkMode(!document.body.classList.contains('dark-mode'), true);
 }
 
@@ -25,41 +36,65 @@ function applyDarkMode(dark, withTransition) {
     }
 
     document.body.classList.toggle('dark-mode', dark);
-    localStorage.setItem(DM_KEY, dark);
+    if (localStorage.getItem(DM_KEY) !== 'auto') {
+        localStorage.setItem(DM_KEY, dark);
+    }
 
-    // Sync header icon
     const icon = document.getElementById('darkModeIcon');
     const btn  = document.getElementById('headerDarkToggle');
     if (icon) icon.className = dark ? 'fas fa-sun' : 'fas fa-moon';
     if (btn)  btn.title = dark ? 'Switch to Light Mode' : 'Switch to Dark Mode';
 
-    // Sync settings toggle if the settings panel is currently rendered
     const settingsToggle = document.getElementById('settingsDarkToggle');
     if (settingsToggle) settingsToggle.checked = dark;
 
-    // Update theme card active states in settings
     syncSettingsThemeCards(dark);
+}
+
+function activateAutoTheme() {
+    localStorage.setItem(DM_KEY, 'auto');
+    _startAutoTheme();
+    syncSettingsThemeCards(document.body.classList.contains('dark-mode'));
+}
+
+function _startAutoTheme() {
+    _stopAutoTheme();
+    applyDarkMode(_isDarkHour(), true);
+    // re-check every minute
+    _autoThemeTimer = setInterval(() => applyDarkMode(_isDarkHour(), true), 60000);
+}
+
+function _stopAutoTheme() {
+    if (_autoThemeTimer) { clearInterval(_autoThemeTimer); _autoThemeTimer = null; }
 }
 
 function syncSettingsThemeCards(dark) {
     const lightCard  = document.getElementById('dmCardLight');
     const darkCard   = document.getElementById('dmCardDark');
     const systemCard = document.getElementById('dmCardSystem');
-    if (!lightCard) return;
-    [lightCard, darkCard, systemCard].forEach(c => {
+    const autoCard   = document.getElementById('dmCardAuto');
+    const cards = [lightCard, darkCard, systemCard, autoCard].filter(Boolean);
+    if (!cards.length) return;
+
+    cards.forEach(c => {
         c.style.borderColor = 'var(--border)';
-        c.style.opacity = '1';
         c.querySelector('.dm-card-label').style.color = 'var(--text-secondary)';
         c.querySelector('.dm-card-label').style.fontWeight = '500';
     });
-    const active = dark ? darkCard : lightCard;
-    active.style.borderColor = 'var(--primary-light)';
-    active.querySelector('.dm-card-label').style.color = 'var(--primary-light)';
-    active.querySelector('.dm-card-label').style.fontWeight = '700';
+
+    const isAuto = localStorage.getItem(DM_KEY) === 'auto';
+    const active = isAuto ? autoCard : (dark ? darkCard : lightCard);
+    if (active) {
+        active.style.borderColor = 'var(--primary-light)';
+        active.querySelector('.dm-card-label').style.color = 'var(--primary-light)';
+        active.querySelector('.dm-card-label').style.fontWeight = '700';
+    }
 }
 
-window.toggleDarkMode = toggleDarkMode;
-window.applyDarkMode  = applyDarkMode;
+window.toggleDarkMode    = toggleDarkMode;
+window.applyDarkMode     = applyDarkMode;
+window.activateAutoTheme = activateAutoTheme;
+window._stopAutoTheme    = _stopAutoTheme;
 
 /* ── State ── */
 let currentSection = 'overview';
@@ -1559,26 +1594,33 @@ function renderSettings() {
 
                         <!-- Theme cards -->
                         <div style="display:flex;gap:0.875rem;margin-bottom:1.5rem">
-                            <div id="dmCardLight" onclick="applyDarkMode(false,true)"
+                            <div id="dmCardLight" onclick="_stopAutoTheme();applyDarkMode(false,true);localStorage.setItem('fxsp_dark_mode','false')"
                                 style="flex:1;padding:1rem;border:1.5px solid var(--border);border-radius:var(--radius-lg);cursor:pointer;text-align:center;transition:all 0.2s ease">
                                 <div style="width:44px;height:44px;background:#f8fafc;border-radius:10px;margin:0 auto 0.625rem;border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
                                     <i class="fas fa-sun" style="color:#f59e0b;font-size:1.125rem"></i>
                                 </div>
                                 <div class="dm-card-label" style="font-size:0.8125rem">Light</div>
                             </div>
-                            <div id="dmCardDark" onclick="applyDarkMode(true,true)"
+                            <div id="dmCardDark" onclick="_stopAutoTheme();applyDarkMode(true,true);localStorage.setItem('fxsp_dark_mode','true')"
                                 style="flex:1;padding:1rem;border:1.5px solid var(--border);border-radius:var(--radius-lg);cursor:pointer;text-align:center;transition:all 0.2s ease">
                                 <div style="width:44px;height:44px;background:#0f172a;border-radius:10px;margin:0 auto 0.625rem;border:1px solid #1e293b;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.2)">
                                     <i class="fas fa-moon" style="color:#60a5fa;font-size:1.125rem"></i>
                                 </div>
                                 <div class="dm-card-label" style="font-size:0.8125rem">Dark</div>
                             </div>
-                            <div id="dmCardSystem" onclick="applyDarkMode(window.matchMedia('(prefers-color-scheme: dark)').matches, true)"
+                            <div id="dmCardSystem" onclick="_stopAutoTheme();applyDarkMode(window.matchMedia('(prefers-color-scheme: dark)').matches,true);localStorage.setItem('fxsp_dark_mode',window.matchMedia('(prefers-color-scheme: dark)').matches)"
                                 style="flex:1;padding:1rem;border:1.5px solid var(--border);border-radius:var(--radius-lg);cursor:pointer;text-align:center;transition:all 0.2s ease">
                                 <div style="width:44px;height:44px;background:linear-gradient(135deg,#f8fafc 50%,#0f172a 50%);border-radius:10px;margin:0 auto 0.625rem;border:1px solid var(--border);display:flex;align-items:center;justify-content:center">
                                     <i class="fas fa-circle-half-stroke" style="color:#64748b;font-size:1.125rem"></i>
                                 </div>
                                 <div class="dm-card-label" style="font-size:0.8125rem">System</div>
+                            </div>
+                            <div id="dmCardAuto" onclick="activateAutoTheme()"
+                                style="flex:1;padding:1rem;border:1.5px solid var(--border);border-radius:var(--radius-lg);cursor:pointer;text-align:center;transition:all 0.2s ease">
+                                <div style="width:44px;height:44px;background:linear-gradient(135deg,#fef3c7 50%,#1e3a5f 50%);border-radius:10px;margin:0 auto 0.625rem;border:1px solid var(--border);display:flex;align-items:center;justify-content:center">
+                                    <i class="fas fa-clock" style="color:#6366f1;font-size:1.125rem"></i>
+                                </div>
+                                <div class="dm-card-label" style="font-size:0.8125rem">Auto</div>
                             </div>
                         </div>
 
