@@ -66,6 +66,39 @@ let currentSection = 'overview';
 let currentUser    = null;
 let charts         = {};
 
+/* ── Role-based access ── */
+const ROLE_PERMISSIONS = {
+    account_manager: ['overview', 'clients', 'team', 'performance', 'reports', 'settings', 'help'],
+    support:         ['overview', 'my-tickets', 'all-tickets', 'team', 'performance', 'settings', 'help'],
+    sales:           ['overview', 'team', 'performance', 'reports', 'settings', 'help'],
+    finance:         ['overview', 'reports', 'settings', 'help'],
+};
+
+const ROLE_DEFAULTS = {
+    account_manager: 'clients',
+    support:         'my-tickets',
+    sales:           'overview',
+    finance:         'reports',
+};
+
+const ROLE_LABELS = {
+    account_manager: 'Account Manager',
+    support:         'Chat Support',
+    sales:           'Sales / IB',
+    finance:         'Finance / Back Office',
+};
+
+function getAllowedSections() {
+    return ROLE_PERMISSIONS[currentUser?.role] || ROLE_PERMISSIONS['support'];
+}
+
+function applyRoleAccess() {
+    const allowed = getAllowedSections();
+    document.querySelectorAll('[data-nav]').forEach(btn => {
+        btn.style.display = allowed.includes(btn.dataset.nav) ? '' : 'none';
+    });
+}
+
 /* ── Bootstrap ── */
 document.addEventListener('DOMContentLoaded', () => {
     currentUser = requireAuth();
@@ -76,9 +109,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function initDashboard() {
     renderUserInfo();
+    applyRoleAccess();
     initNavigation();
     initSearch();
-    navigateTo('overview');
+    navigateTo(ROLE_DEFAULTS[currentUser?.role] || 'overview');
 }
 
 /* ══════════════════════════════════════
@@ -87,12 +121,12 @@ function initDashboard() {
 function renderUserInfo() {
     // Header
     document.getElementById('headerUserName').textContent = currentUser.name;
-    document.getElementById('headerUserRole').textContent = currentUser.role;
+    document.getElementById('headerUserRole').textContent = ROLE_LABELS[currentUser.role] || currentUser.role;
     setAvatarInitials('headerAvatar', currentUser.initials, currentUser.color);
 
     // Sidebar footer
     document.getElementById('sidebarUserName').textContent = currentUser.name;
-    document.getElementById('sidebarUserRole').textContent = currentUser.role;
+    document.getElementById('sidebarUserRole').textContent = ROLE_LABELS[currentUser.role] || currentUser.role;
     setAvatarInitials('sidebarAvatar', currentUser.initials, currentUser.color);
 }
 
@@ -120,6 +154,9 @@ function initNavigation() {
 }
 
 function navigateTo(section) {
+    if (!getAllowedSections().includes(section)) {
+        section = ROLE_DEFAULTS[currentUser?.role] || 'overview';
+    }
     currentSection = section;
 
     // Update nav items
