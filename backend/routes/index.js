@@ -1,7 +1,6 @@
 const router = require('express').Router();
 
-// Mount feature routes here as you add them
-// e.g. router.use('/users', require('./users'));
+router.use('/auth', require('./auth'));
 
 router.get('/', (_req, res) => res.json({ message: 'API is running' }));
 
