@@ -1169,53 +1169,95 @@ function chartOptions(yLabel) {
 /* ══════════════════════════════════════
    TEAM
 ══════════════════════════════════════ */
-function renderTeam() {
+async function renderTeam() {
     const el = document.getElementById('section-team');
+
+    const roleLabel = {
+        account_manager: 'Account Manager',
+        support:         'Chat Support',
+        sales:           'Sales / IB',
+        finance:         'Finance / Back Office',
+    };
+    const roleSpec = {
+        account_manager: 'Client Account Management',
+        support:         'Chat & Email Support',
+        sales:           'Sales & IB Relationships',
+        finance:         'Back Office & Transactions',
+    };
+    const avatarColors = ['av-blue', 'av-purple', 'av-green', 'av-orange', 'av-teal', 'av-indigo'];
+
     el.innerHTML = `
         <div class="section-header">
             <div class="section-header-left">
                 <h2>Support Team</h2>
-                <p>${FXSP_DATA.team.filter(m => m.status === 'active').length} agents online · ${FXSP_DATA.team.length} total</p>
+                <p id="teamSubtitle">Loading…</p>
             </div>
         </div>
-        <div class="team-grid">
-            ${FXSP_DATA.team.map(m => `
-            <div class="team-card">
-                <div class="team-card-header">
-                    <div class="avatar avatar-lg ${m.color}">${m.avatar}</div>
-                    <div class="team-card-info">
-                        <div class="team-card-name">${m.name}</div>
-                        <div class="team-card-role">${m.role}</div>
-                        <span class="badge badge-${m.status}" style="margin-top:4px">${m.status.charAt(0).toUpperCase()+m.status.slice(1)}</span>
-                    </div>
-                    <button class="btn btn-sm btn-secondary btn-icon" title="Message" onclick="showToast('Chat with ${m.name} coming soon!','info')">
-                        <i class="fas fa-comment"></i>
-                    </button>
-                </div>
-                <div style="font-size:0.78rem;color:var(--text-muted);background:var(--bg-alt);padding:0.5rem 0.75rem;border-radius:6px">
-                    <i class="fas fa-star" style="color:#f59e0b;margin-right:4px"></i>${m.specialization}
-                </div>
-                <div class="team-card-stats">
-                    <div class="team-stat">
-                        <div class="team-stat-value">${m.ticketsOpen}</div>
-                        <div class="team-stat-label">Open</div>
-                    </div>
-                    <div class="team-stat">
-                        <div class="team-stat-value">${m.ticketsResolved}</div>
-                        <div class="team-stat-label">Resolved</div>
-                    </div>
-                    <div class="team-stat">
-                        <div class="team-stat-value">${m.satisfaction}%</div>
-                        <div class="team-stat-label">CSAT</div>
-                    </div>
-                </div>
-                <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.78rem;color:var(--text-muted)">
-                    <span><i class="fas fa-clock" style="margin-right:4px"></i>Avg response: <strong style="color:var(--text-primary)">${m.avgResponseTime}</strong></span>
-                    <button class="btn btn-sm btn-primary" onclick="showToast('Viewing ${m.name} tickets…','info')">View Tickets</button>
-                </div>
-            </div>`).join('')}
+        <div class="team-grid" id="teamGrid">
+            <div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-muted)">
+                <i class="fas fa-circle-notch spin"></i> Loading team…
+            </div>
         </div>
     `;
+
+    try {
+        const res   = await fetch(`${CONFIG.API_BASE}/users`);
+        const json  = await res.json();
+        const users = json.users || [];
+
+        document.getElementById('teamSubtitle').textContent =
+            `${users.length} agent${users.length !== 1 ? 's' : ''} registered`;
+
+        document.getElementById('teamGrid').innerHTML = users.length === 0
+            ? `<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-muted)">No team members found.</div>`
+            : users.map((m, i) => {
+                const initials = m.name.trim().split(/\s+/).map(w => w[0].toUpperCase()).slice(0, 2).join('');
+                const color    = avatarColors[i % avatarColors.length];
+                const label    = roleLabel[m.role] || m.role;
+                const spec     = roleSpec[m.role]  || m.role;
+                const nameSafe = m.name.replace(/'/g, "\\'");
+                return `
+                <div class="team-card">
+                    <div class="team-card-header">
+                        <div class="avatar avatar-lg ${color}">${initials}</div>
+                        <div class="team-card-info">
+                            <div class="team-card-name">${m.name}</div>
+                            <div class="team-card-role">${label}</div>
+                            <span class="badge badge-active" style="margin-top:4px">Active</span>
+                        </div>
+                        <button class="btn btn-sm btn-secondary btn-icon" title="Message" onclick="showToast('Chat with ${nameSafe} coming soon!','info')">
+                            <i class="fas fa-comment"></i>
+                        </button>
+                    </div>
+                    <div style="font-size:0.78rem;color:var(--text-muted);background:var(--bg-alt);padding:0.5rem 0.75rem;border-radius:6px">
+                        <i class="fas fa-star" style="color:#f59e0b;margin-right:4px"></i>${spec}
+                    </div>
+                    <div class="team-card-stats">
+                        <div class="team-stat">
+                            <div class="team-stat-value">—</div>
+                            <div class="team-stat-label">Open</div>
+                        </div>
+                        <div class="team-stat">
+                            <div class="team-stat-value">—</div>
+                            <div class="team-stat-label">Resolved</div>
+                        </div>
+                        <div class="team-stat">
+                            <div class="team-stat-value">—</div>
+                            <div class="team-stat-label">CSAT</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.78rem;color:var(--text-muted)">
+                        <span><i class="fas fa-envelope" style="margin-right:4px"></i>${m.email}</span>
+                        <button class="btn btn-sm btn-primary" onclick="showToast('Viewing ${nameSafe} tickets…','info')">View Tickets</button>
+                    </div>
+                </div>`;
+            }).join('');
+    } catch {
+        document.getElementById('teamGrid').innerHTML =
+            `<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--danger)">
+                <i class="fas fa-exclamation-circle"></i> Could not load team — is the backend running?
+            </div>`;
+    }
 }
 
 /* ══════════════════════════════════════
